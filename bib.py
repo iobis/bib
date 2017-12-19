@@ -77,7 +77,7 @@ for species in specieslist:
 
 	search = species.replace("(", "")
 	search = search.replace(")", "")
-	query.userQuery = "TS=%s AND AD=Belgi*" % search
+	query.userQuery = "TS=%s AND AD=Belgi* AND PY=(2016-2018)" % search
 
 	try:
 		results = client.service.search(query, retrieve)
