@@ -33,17 +33,11 @@ pubs = cur.fetchall()
 
 # set up sqlite
 
-conn = sqlite3.connect("obis/wos.db")
+conn = sqlite3.connect("wos.db")
 c = conn.cursor()
 c.execute("create table if not exists wos (brefid integer, country text)")
+c.execute("create table if not exists authors (brefid integer, author text)")
 conn.commit()
-
-#override
-
-#pubs = [["254394", "Vertical niche separation control of diversity and size disparity in planktonic foraminifera"]]
-#pubs = [["254151", "Spatio-temporal assessments of biodiversity in the high seas", "Endangered Species Research"]]
-#pubs = [["252980", "Macrofaunal production and biological traits: spatial relationships along the UK continental shelf", "Journal of Sea Research"]]
-#pubs = [["252991", "Magnificent dimensions, varied forms, and brilliant colors: the molecular ecology and evolution of the Indian and Pacific oceans", "Bulletin of Marine Science"]]
 
 # offset
 
@@ -81,6 +75,10 @@ for pub in pubs:
     print message
 
     query = "delete from wos where brefid = " + str(id)
+    c.execute(query)
+    conn.commit()
+
+    query = "delete from authors where brefid = " + str(id)
     c.execute(query)
     conn.commit()
 
@@ -126,6 +124,16 @@ for pub in pubs:
                 f = open("log/" + str(id) + "_page.html", "w")
                 f.write(page)
                 f.close()
+
+            # authors
+
+            authors = re.findall("author_name=(.*?)&amp", page)
+
+            for author in authors:
+                print "\t" + author
+                query = "insert into authors values (%s, '%s')" % (id, author)
+                c.execute(query)
+                conn.commit()
 
             # author addresses
 

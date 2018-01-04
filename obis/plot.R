@@ -85,15 +85,35 @@ ggplot(world, aes(long, lat)) +
   #coord_map(orientation = c(90, 0, -100))
   coord_map()
 
+### cluster -> not working yet
 
+library(reshape2)
+library(cluster)
+library(factoextra)
 
+aff <- aff %>% distinct(brefid, country)
+countries <- unique(aff$country)
 
+m <- matrix(0, nrow = length(countries), ncol = length(countries))
 
+for (i in 1:length(countries)) {
+  c1 <- countries[i]
+  for (j in i:length(countries)) {
+    c2 <- countries[j]
+    if (i == j) {
+      m[i, j] <- 0
+    } else {
+      commonpapers <- aff %>% filter(country %in% c(c1, c2)) %>% group_by(brefid) %>% summarize(n = n()) %>% filter(n == 2) %>% nrow()
+      totalpapers <-  aff %>% filter(country %in% c(c1, c2)) %>% distinct(brefid) %>% nrow()
+      d <- 1 - (commonpapers / totalpapers)
+      m[j, i] <- d
+    }
+  }
+}
 
+row.names(m) <- countries
+names(m) <- countries
 
+hc <- hclust(as.dist(m))
 
-
-
-
-
-
+fviz_dend(hc, k = 4, cex = 0.5, k_colors = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"), color_labels_by_k = TRUE, rect = TRUE)
