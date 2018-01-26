@@ -4,6 +4,16 @@ require(RSQLite)
 require(ggplot2)
 require(RColorBrewer)
 library(DBI)
+require(mapdata)
+require(ggplot2)
+require(dplyr)
+library(reshape2)
+library(cluster)
+library(factoextra)
+library(ggraph)
+library(igraph)
+
+### data prep
 
 con <- dbConnect(RSQLite::SQLite(), "wos.db")
 
@@ -11,8 +21,33 @@ res <- dbSendQuery(con, "select country, count(*) as count from wos group by cou
 counts <- dbFetch(res)
 
 counts$country <- factor(counts$country, levels = counts$country)
-ncolors <- 25
 
+center <- read.csv("country_centroids_all.csv", na.strings = "", stringsAsFactors = FALSE)
+center <- center %>% select(LAT, LONG, SHORT_NAME, continent)
+
+res <- dbSendQuery(con, "select * from wos")
+aff <- dbFetch(res)
+
+refs <- unique(aff$brefid)
+aff <- left_join(aff, center, by = c("country" = "SHORT_NAME"))
+locations <- aff %>% distinct(LONG, LAT)
+
+connections <- data.frame(x=numeric(0), xend=numeric(0), y=numeric(0), yend=numeric(0))
+
+for (ref in refs) {
+  cdata <- aff %>% filter(brefid == ref) %>% distinct(country, LAT, LONG)
+  if (nrow(cdata) > 1) {
+    for (i in 1:(nrow(cdata)-1)) {
+      for (j in (i + 1):nrow(cdata)) {
+        connections <- rbind(connections, data.frame(x=cdata$LON[i], y=cdata$LAT[i], xend=cdata$LON[j], yend=cdata$LAT[j]))
+      }
+    }
+  }
+}
+
+### pie
+
+ncolors <- 25
 number_ticks <- function(n) { function(limits) pretty(limits, n) }
 
 ggplot() + geom_bar(data = counts, aes(x = "", y = count, fill = country), stat = "identity", width = 3) +
@@ -29,37 +64,7 @@ ggplot() + geom_bar(data = counts, aes(x = "", y = count, fill = country), stat 
   ) +
   guides(fill = guide_legend(ncol = 3))
 
-############ map
-
-require(mapdata)
-require(ggplot2)
-require(dplyr)
-
-center <- read.csv("country_centroids_all.csv", sep="\t")
-center <- center %>% select(LAT, LONG, SHORT_NAME)
-
-res <- dbSendQuery(con, "select * from wos")
-aff <- dbFetch(res)
-
-refs <- unique(aff$brefid)
-aff <- left_join(aff, center, by = c("country" = "SHORT_NAME"))
-locations <- aff %>% distinct(LONG, LAT)
-
-#countries <- data.frame(country=unique(aff$country))
-#left_join(countries, center, by=c("country" = "SHORT_NAME"))
-
-connections <- data.frame(x=numeric(0), xend=numeric(0), y=numeric(0), yend=numeric(0))
-
-for (ref in refs) {
-  cdata <- aff %>% filter(brefid == ref) %>% distinct(country, LAT, LONG)
-  if (nrow(cdata) > 1) {
-    for (i in 1:(nrow(cdata)-1)) {
-      for (j in (i + 1):nrow(cdata)) {
-        connections <- rbind(connections, data.frame(x=cdata$LON[i], y=cdata$LAT[i], xend=cdata$LON[j], yend=cdata$LAT[j]))
-      }
-    }
-  }
-}
+### map
 
 world <- map_data("world")
 colour <- "#cc3300"
@@ -80,40 +85,64 @@ ggplot(world, aes(long, lat)) +
     plot.background=element_blank()) +
   geom_segment(data=connections, aes(x=x, xend=xend, y=y, yend=yend), colour=colour, alpha=0.1) +
   geom_point(data=locations, aes(x=LONG, y=LAT), colour=colour, size=0.6) +
-  #coord_map("ortho", orientation = c(41, -74, 0))
-  #coord_map("ortho", orientation = c(41, 200, 0))
-  #coord_map(orientation = c(90, 0, -100))
   coord_map()
 
-### cluster -> not working yet
 
-library(reshape2)
-library(cluster)
-library(factoextra)
 
-aff <- aff %>% distinct(brefid, country)
-countries <- unique(aff$country)
+### -> not working yet
 
-m <- matrix(0, nrow = length(countries), ncol = length(countries))
-
-for (i in 1:length(countries)) {
-  c1 <- countries[i]
-  for (j in i:length(countries)) {
-    c2 <- countries[j]
-    if (i == j) {
-      m[i, j] <- 0
-    } else {
-      commonpapers <- aff %>% filter(country %in% c(c1, c2)) %>% group_by(brefid) %>% summarize(n = n()) %>% filter(n == 2) %>% nrow()
-      totalpapers <-  aff %>% filter(country %in% c(c1, c2)) %>% distinct(brefid) %>% nrow()
-      d <- 1 - (commonpapers / totalpapers)
-      m[j, i] <- d
-    }
+uaff <- aff %>% distinct(brefid, country)
+relationships <- uaff %>% left_join(uaff, by = "brefid") %>% select(brefid, from = country.x, to = country.y)
+relationships <- relationships %>% distinct(brefid, from, to)
+for (i in 1:nrow(relationships)) {
+  if (relationships$from[i] > relationships$to[i]) {
+    f <- relationships$from[i]
+    relationships$from[i] <- relationships$to[i]
+    relationships$to[i] <- f
   }
 }
+relationships <- relationships %>% distinct(brefid, from, to) %>% group_by(from, to) %>% summarize(count = n())
+relationships <- relationships[1:20,]
 
-row.names(m) <- countries
-names(m) <- countries
 
-hc <- hclust(as.dist(m))
+countries <- data.frame(country = unique(c(relationships$from, relationships$to))) %>% arrange(country)
+countries <- countries %>% left_join(center, by = c("country" = "SHORT_NAME")) %>% select(country, continent) %>% arrange(continent, country)
+countries <- countries %>% left_join(counts, by = "country")
+hierarchy <- countries %>% select(from = continent, to = country) %>% filter(!is.na(from)) %>% arrange(from, to)
+or <- data.frame(from = "origin", to = unique(hierarchy$from)) %>% arrange(to)
+hierarchy <- bind_rows(or, hierarchy)
+v <- unique(c(hierarchy$from, hierarchy$to))
+vertices <- data.frame(
+  name = v,
+  count = countries$count[match(v, countries$country)],
+  continent = countries$continent[match(v, countries$country)],
+  stringsAsFactors = FALSE)
+myleaves <- which(is.na(match(vertices$name, hierarchy$from)))
+nleaves <- length(myleaves)
+vertices$id[myleaves] <- seq(1:nleaves)
+vertices$angle <- 90 - 360 * vertices$id / nleaves
+vertices$hjust <- ifelse(vertices$angle < -90, 1, 0)
+vertices$angle <- ifelse(vertices$angle < -90, vertices$angle + 180, vertices$angle)
 
-fviz_dend(hc, k = 4, cex = 0.5, k_colors = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"), color_labels_by_k = TRUE, rect = TRUE)
+mygraph <- graph_from_data_frame(hierarchy, vertices = vertices)
+
+con_from <- match(relationships$from, vertices$name)
+con_to <- match(relationships$to, vertices$name)
+
+ggraph(mygraph, layout = "dendrogram", circular = TRUE) + 
+  geom_conn_bundle(data = get_con(from = con_from, to = con_to, count = relationships$count), aes(edge_colour = count, edge_alpha = count, edge_width = count), tension = 2) + 
+  scale_edge_width(range = c(0.1, 3)) +
+  scale_edge_alpha(range = c(0.1, 1)) +
+  #scale_edge_colour_distiller(palette = "PuRd") +
+  geom_node_point(aes(filter = leaf, x = x * 1.05, y = y * 1.05, colour = continent, size = count, alpha = 0.2)) +
+  scale_colour_brewer(palette = "Spectral") +
+  scale_size_continuous(range = c(0.1, 10)) +
+  geom_node_text(aes(x = x * 1.1, y = y * 1.1, filter = leaf, label = name, angle = angle, hjust = hjust), size = 3, alpha = 1) +
+  theme_void() +
+  theme(
+    legend.position = "none",
+    panel.spacing = unit(c(2, 2, 2, 2), "cm"),
+    plot.margin = unit(c(1, 1, 1, 1), "cm")
+  )
+
+

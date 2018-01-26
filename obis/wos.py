@@ -131,7 +131,7 @@ for pub in pubs:
 
             for author in authors:
                 print "\t" + author
-                query = "insert into authors values (%s, '%s')" % (id, author)
+                query = "insert into authors values (%s, '%s')" % (id, author.replace("'", ""))
                 c.execute(query)
                 conn.commit()
 

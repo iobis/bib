@@ -19,13 +19,13 @@ db.commit()
 
 # create species list
 
-#with open("WoRMS_marine_brackish_species_20160518.csv", "rb") as csvfile:
-#	reader = csv.reader(csvfile)
-#	for row in reader:
-#		sp = row[0].decode("utf8")
-#		print sp
-#		db.execute("insert into species values (?, ?)", (sp, False))
-#	db.commit()
+with open("lists/Lijst 1 WoRMS_marine or brackish.csv", "rb") as csvfile:
+	reader = csv.reader(csvfile)
+	for row in reader:
+		sp = row[0].decode("utf8")
+		print sp
+		db.execute("insert into species values (?, ?)", (sp, False))
+	db.commit()
 
 # read species list
 
