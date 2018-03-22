@@ -91,6 +91,8 @@ ggplot(world, aes(long, lat)) +
 ### https://www.r-graph-gallery.com/310-custom-hierarchical-edge-bundling/
 ### -> not working yet
 
+source("fixes.R")
+
 uaff <- aff %>% distinct(brefid, country)
 relationships <- uaff %>% left_join(uaff, by = "brefid") %>% select(brefid, from = country.x, to = country.y)
 relationships <- relationships %>% distinct(brefid, from, to)
@@ -102,7 +104,8 @@ for (i in 1:nrow(relationships)) {
   }
 }
 relationships <- relationships %>% distinct(brefid, from, to) %>% group_by(from, to) %>% summarize(count = n())
-relationships <- relationships[1:20,]
+relationships <- relationships[1:26,]
+relationships <- relationships %>% filter(from != to)
 
 # countries and countries hierarchy
 countries <- data.frame(country = unique(c(relationships$from, relationships$to))) %>% arrange(country)
@@ -133,8 +136,8 @@ con_from <- match(relationships$from, vertices$name)
 con_to <- match(relationships$to, vertices$name)
 
 ggraph(mygraph, layout = "dendrogram", circular = TRUE) + 
-  geom_conn_bundle(data = get_con(from = con_from, to = con_to, value = relationships$count), aes(colour = value, width = value), tension = 2) + 
-  scale_edge_colour_distiller(palette = "PuRd") +
+  geom_conn_bundle(data = get_con2(from = con_from, to = con_to, value = relationships$count), aes(colour = value, width = value), tension = 2) + 
+  scale_edge_colour_distiller(palette = "RdPu") +
   geom_node_point(aes(filter = leaf, colour = continent, size = count, alpha = 0.2)) +
   geom_node_text(aes(filter = leaf, label = name), size = 3, alpha = 1) +
   theme_void() +
