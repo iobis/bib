@@ -44,11 +44,16 @@ getConnections <- function(layout, from, to, weight = NULL, mode = 'all') {
     weight <- getEdges(layout)[[weight]]
   }
   graph <- attr(layout, 'graph')
-  to <- split(to, from)
+  
   connections <- lapply(seq_along(to), function(i) {
-    paths <- shortest_paths(graph, as.integer(names(to)[i]), to[[i]], mode = mode, weights = weight)$vpath
+    paths <- shortest_paths(graph, from[i], to[i], mode = mode, weights = weight)$vpath
     lapply(paths, as.numeric)
   })
+  # to <- split(to, from)
+  # connections <- lapply(seq_along(to), function(i) {
+  #   paths <- shortest_paths(graph, as.integer(names(to)[i]), to[[i]], mode = mode, weights = weight)$vpath
+  #   lapply(paths, as.numeric)
+  # })
   unlist(connections, recursive = FALSE)
 }
 
@@ -80,11 +85,12 @@ get_con2 <- function (from = integer(), to = integer(), paths = NULL, ...)
 plot <- function() {
   mygraph <- graph_from_data_frame(hierarchy, vertices = vertices)
   
-  relationships <- relationships[-1,]
+  relationships <- relationships %>% filter(from != to)
   con_from <- match(relationships$from, vertices$name)
   con_to <- match(relationships$to, vertices$name)
   con_to_order <- order(con_to)
   con_to <- con_to[con_to_order]
+  con_from <- con_from[con_to_order]
   relationships <- relationships[con_to_order,]
   count <- relationships$count
   ggraph(mygraph, layout = "dendrogram", circular = TRUE) + 
@@ -99,4 +105,4 @@ plot <- function() {
       plot.margin = unit(c(1, 1, 1, 1), "cm")
     )
 }
-plot()
+#plot()
