@@ -19,7 +19,7 @@ db.commit()
 
 # create species list
 
-with open("lists/Lijst 1 WoRMS_marine or brackish.csv", "rb") as csvfile:
+with open("lists/Lijst 2 WoRMS_marine or brackish and_freshwater.csv", "rb") as csvfile:
 	reader = csv.reader(csvfile)
 	for row in reader:
 		sp = row[0].decode("utf8")
@@ -77,7 +77,8 @@ for species in specieslist:
 
 	search = species.replace("(", "")
 	search = search.replace(")", "")
-	query.userQuery = "TS=%s AND AD=Belgi* AND PY=(2016-2018)" % search
+	#query.userQuery = "TS=%s AND AD=Belgi* AND PY=(2016-2018)" % search
+	query.userQuery = "TS=%s AND AD=Belgi*" % search
 
 	try:
 		results = client.service.search(query, retrieve)

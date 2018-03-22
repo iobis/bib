@@ -88,7 +88,7 @@ ggplot(world, aes(long, lat)) +
   coord_map()
 
 
-
+### https://www.r-graph-gallery.com/310-custom-hierarchical-edge-bundling/
 ### -> not working yet
 
 uaff <- aff %>% distinct(brefid, country)
@@ -104,13 +104,16 @@ for (i in 1:nrow(relationships)) {
 relationships <- relationships %>% distinct(brefid, from, to) %>% group_by(from, to) %>% summarize(count = n())
 relationships <- relationships[1:20,]
 
-
+# countries and countries hierarchy
 countries <- data.frame(country = unique(c(relationships$from, relationships$to))) %>% arrange(country)
 countries <- countries %>% left_join(center, by = c("country" = "SHORT_NAME")) %>% select(country, continent) %>% arrange(continent, country)
 countries <- countries %>% left_join(counts, by = "country")
 hierarchy <- countries %>% select(from = continent, to = country) %>% filter(!is.na(from)) %>% arrange(from, to)
+
+# add origin
 or <- data.frame(from = "origin", to = unique(hierarchy$from)) %>% arrange(to)
 hierarchy <- bind_rows(or, hierarchy)
+
 v <- unique(c(hierarchy$from, hierarchy$to))
 vertices <- data.frame(
   name = v,
@@ -120,9 +123,9 @@ vertices <- data.frame(
 myleaves <- which(is.na(match(vertices$name, hierarchy$from)))
 nleaves <- length(myleaves)
 vertices$id[myleaves] <- seq(1:nleaves)
-vertices$angle <- 90 - 360 * vertices$id / nleaves
-vertices$hjust <- ifelse(vertices$angle < -90, 1, 0)
-vertices$angle <- ifelse(vertices$angle < -90, vertices$angle + 180, vertices$angle)
+#vertices$angle <- 90 - 360 * vertices$id / nleaves
+#vertices$hjust <- ifelse(vertices$angle < -90, 1, 0)
+#vertices$angle <- ifelse(vertices$angle < -90, vertices$angle + 180, vertices$angle)
 
 mygraph <- graph_from_data_frame(hierarchy, vertices = vertices)
 
@@ -130,14 +133,10 @@ con_from <- match(relationships$from, vertices$name)
 con_to <- match(relationships$to, vertices$name)
 
 ggraph(mygraph, layout = "dendrogram", circular = TRUE) + 
-  geom_conn_bundle(data = get_con(from = con_from, to = con_to, count = relationships$count), aes(edge_colour = count, edge_alpha = count, edge_width = count), tension = 2) + 
-  scale_edge_width(range = c(0.1, 3)) +
-  scale_edge_alpha(range = c(0.1, 1)) +
-  #scale_edge_colour_distiller(palette = "PuRd") +
-  geom_node_point(aes(filter = leaf, x = x * 1.05, y = y * 1.05, colour = continent, size = count, alpha = 0.2)) +
-  scale_colour_brewer(palette = "Spectral") +
-  scale_size_continuous(range = c(0.1, 10)) +
-  geom_node_text(aes(x = x * 1.1, y = y * 1.1, filter = leaf, label = name, angle = angle, hjust = hjust), size = 3, alpha = 1) +
+  geom_conn_bundle(data = get_con(from = con_from, to = con_to, value = relationships$count), aes(colour = value, width = value), tension = 2) + 
+  scale_edge_colour_distiller(palette = "PuRd") +
+  geom_node_point(aes(filter = leaf, colour = continent, size = count, alpha = 0.2)) +
+  geom_node_text(aes(filter = leaf, label = name), size = 3, alpha = 1) +
   theme_void() +
   theme(
     legend.position = "none",
