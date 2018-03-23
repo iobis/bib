@@ -1,3 +1,4 @@
+
 getConnections <- function(layout, from, to, weight = NULL, mode = 'all') {
   from <- match(from, layout$.ggraph.orig_index)
   to <- match(to, layout$.ggraph.orig_index)
@@ -7,11 +8,16 @@ getConnections <- function(layout, from, to, weight = NULL, mode = 'all') {
     weight <- getEdges(layout)[[weight]]
   }
   graph <- attr(layout, 'graph')
-  to <- split(to, from)
+  
   connections <- lapply(seq_along(to), function(i) {
-    paths <- shortest_paths(graph, as.integer(names(to)[i]), to[[i]], mode = mode, weights = weight)$vpath
+    paths <- shortest_paths(graph, from[i], to[i], mode = mode, weights = weight)$vpath
     lapply(paths, as.numeric)
   })
+  # to <- split(to, from)
+  # connections <- lapply(seq_along(to), function(i) {
+  #   paths <- shortest_paths(graph, as.integer(names(to)[i]), to[[i]], mode = mode, weights = weight)$vpath
+  #   lapply(paths, as.numeric)
+  # })
   unlist(connections, recursive = FALSE)
 }
 
@@ -38,4 +44,3 @@ get_con2 <- function (from = integer(), to = integer(), paths = NULL, ...)
     structure(nodes, type = "connection_ggraph")
   }
 }
-
