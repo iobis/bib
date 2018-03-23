@@ -141,11 +141,14 @@ ggraph(mygraph, layout = "dendrogram", circular = TRUE) +
   theme(
     legend.position = "none",
     panel.spacing = unit(c(0, 0, 0, 0), "cm"),
-    plot.margin = unit(c(0, 0, 0, 0), "cm")
+    plot.margin = unit(c(0, 0, 0, 0), "cm"),
+    panel.background = element_rect(fill = "transparent"),
+    plot.background = element_rect(fill = "transparent")
   ) + 
   geom_conn_bundle(data = get_con2(from = con_from, to = con_to, value = relationships$count),
                    aes(colour = value, width = value, alpha = value), tension = 1) +
-  scale_edge_colour_gradient(low = "#db408c", high = "#77196e") +
+  #scale_edge_colour_gradient(low = "#db408c", high = "#77196e") +
+  scale_edge_colour_gradient(low = "#db408c", high = "#db408c") +
   scale_edge_width(range = c(0.1, 5)) +
   scale_edge_alpha(range = c(0.2, 0.5)) +
   geom_node_point(aes(filter = leaf, x = x*1.05, y = y*1.05, colour = continent, size = count, alpha = 0.2)) +
@@ -154,4 +157,5 @@ ggraph(mygraph, layout = "dendrogram", circular = TRUE) +
   geom_node_text(aes(x = x*1.15, y = y*1.15, filter = leaf, label = name, colour = continent, angle = angle, hjust = hjust), size = 3, alpha = 1) +
   expand_limits(x = c(-1.3, 1.3), y = c(-1.3, 1.3))
 
-ggsave("pub.png", height = 10, width = 10, dpi = 600)
+ggsave("pub_singlecolor.png", height = 10, width = 10, dpi = 600, bg = "transparent")
+ggsave("pub_singlecolor.pdf", height = 10, width = 10, dpi = 600, bg = "transparent")
