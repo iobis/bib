@@ -102,7 +102,7 @@ for (i in 1:nrow(relationships)) {
   }
 }
 relationships <- relationships %>% distinct(brefid, from, to) %>% group_by(from, to) %>% summarize(count = n())
-relationships <- relationships[1:26,]
+#relationships <- relationships[1:100,]
 relationships <- relationships %>% filter(from != to)
 
 countries <- data.frame(country = unique(c(relationships$from, relationships$to))) %>% arrange(country)
@@ -121,9 +121,9 @@ vertices <- data.frame(
 myleaves <- which(is.na(match(vertices$name, hierarchy$from)))
 nleaves <- length(myleaves)
 vertices$id[myleaves] <- seq(1:nleaves)
-#vertices$angle <- 90 - 360 * vertices$id / nleaves
-#vertices$hjust <- ifelse(vertices$angle < -90, 1, 0)
-#vertices$angle <- ifelse(vertices$angle < -90, vertices$angle + 180, vertices$angle)
+vertices$angle <- 160 - 360 * vertices$id / nleaves
+vertices$hjust <- ifelse(vertices$angle < -90 | vertices$angle > 90, 0, 1)
+vertices$angle <- ifelse(vertices$angle < -90 | vertices$angle > 90, vertices$angle + 180, vertices$angle)
 
 mygraph <- graph_from_data_frame(hierarchy, vertices = vertices)
 
@@ -134,16 +134,24 @@ con_to <- con_to[con_to_order]
 con_from <- con_from[con_to_order]
 relationships <- relationships[con_to_order,]
 
+colors <- brewer.pal(9, "Paired")[c(1, 3, 2, 5, 7, 4)]
+
 ggraph(mygraph, layout = "dendrogram", circular = TRUE) +
-  geom_conn_bundle(data = get_con2(from = con_from, to = con_to, value = relationships$count), aes(colour = value, width = value), tension = 2) +
-  scale_edge_colour_distiller(palette = "RdPu") +
-  geom_node_point(aes(filter = leaf, colour = continent, size = count, alpha = 0.2)) +
-  geom_node_text(aes(filter = leaf, label = name), size = 3, alpha = 1) +
   theme_void() +
   theme(
     legend.position = "none",
-    panel.spacing = unit(c(2, 2, 2, 2), "cm"),
-    plot.margin = unit(c(1, 1, 1, 1), "cm")
-  )
+    panel.spacing = unit(c(0, 0, 0, 0), "cm"),
+    plot.margin = unit(c(0, 0, 0, 0), "cm")
+  ) + 
+  geom_conn_bundle(data = get_con2(from = con_from, to = con_to, value = relationships$count),
+                   aes(colour = value, width = value, alpha = value), tension = 1) +
+  scale_edge_colour_gradient(low = "#db408c", high = "#77196e") +
+  scale_edge_width(range = c(0.1, 5)) +
+  scale_edge_alpha(range = c(0.2, 0.5)) +
+  geom_node_point(aes(filter = leaf, x = x*1.05, y = y*1.05, colour = continent, size = count, alpha = 0.2)) +
+  scale_colour_manual(values = colors) +
+  scale_size_continuous(range = c(1, 16)) +
+  geom_node_text(aes(x = x*1.15, y = y*1.15, filter = leaf, label = name, colour = continent, angle = angle, hjust = hjust), size = 3, alpha = 1) +
+  expand_limits(x = c(-1.3, 1.3), y = c(-1.3, 1.3))
 
-
+ggsave("pub.png", height = 10, width = 10, dpi = 600)
