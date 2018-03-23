@@ -132,9 +132,10 @@ con_to <- match(relationships$to, vertices$name)
 con_to_order <- order(con_to)
 con_to <- con_to[con_to_order]
 con_from <- con_from[con_to_order]
+relationships <- relationships[con_to_order,]
 
-ggraph(mygraph, layout = "dendrogram", circular = TRUE) + 
-  geom_conn_bundle(data = get_con2(from = con_from, to = con_to, value = relationships$count), aes(colour = value, width = value), tension = 2) + 
+ggraph(mygraph, layout = "dendrogram", circular = TRUE) +
+  geom_conn_bundle(data = get_con2(from = con_from, to = con_to, value = relationships$count), aes(colour = value, width = value), tension = 2) +
   scale_edge_colour_distiller(palette = "RdPu") +
   geom_node_point(aes(filter = leaf, colour = continent, size = count, alpha = 0.2)) +
   geom_node_text(aes(filter = leaf, label = name), size = 3, alpha = 1) +
