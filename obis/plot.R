@@ -135,6 +135,7 @@ con_from <- con_from[con_to_order]
 relationships <- relationships[con_to_order,]
 
 colors <- brewer.pal(9, "Paired")[c(1, 3, 2, 5, 7, 4)]
+colors <- c("#2196f3", "#ff5722", "#7b1fa2", "#8bc34a", "#ffc107", "#ff4081")
 
 ggraph(mygraph, layout = "dendrogram", circular = TRUE) +
   theme_void() +
@@ -147,15 +148,15 @@ ggraph(mygraph, layout = "dendrogram", circular = TRUE) +
   ) + 
   geom_conn_bundle(data = get_con2(from = con_from, to = con_to, value = relationships$count),
                    aes(colour = value, width = value, alpha = value), tension = 1) +
-  #scale_edge_colour_gradient(low = "#db408c", high = "#77196e") +
-  scale_edge_colour_gradient(low = "#db408c", high = "#db408c") +
+  scale_edge_colour_gradient(low = "#db408c", high = "#77196e") +
+  #scale_edge_colour_gradient(low = "#db408c", high = "#db408c") +
   scale_edge_width(range = c(0.1, 5)) +
   scale_edge_alpha(range = c(0.2, 0.5)) +
   geom_node_point(aes(filter = leaf, x = x*1.05, y = y*1.05, colour = continent, size = count, alpha = 0.2)) +
   scale_colour_manual(values = colors) +
   scale_size_continuous(range = c(1, 16)) +
-  geom_node_text(aes(x = x*1.15, y = y*1.15, filter = leaf, label = name, colour = continent, angle = angle, hjust = hjust), size = 3, alpha = 1) +
-  expand_limits(x = c(-1.3, 1.3), y = c(-1.3, 1.3))
+  geom_node_text(aes(x = x*1.15, y = y*1.15, filter = leaf, label = name, colour = continent, angle = angle, hjust = hjust), size = 4.5, alpha = 1) +
+  expand_limits(x = c(-1.4, 1.4), y = c(-1.4, 1.4))
 
-ggsave("pub_singlecolor.png", height = 10, width = 10, dpi = 600, bg = "transparent")
-ggsave("pub_singlecolor.pdf", height = 10, width = 10, dpi = 600, bg = "transparent")
+ggsave("pub_larger_colors.png", height = 10, width = 10, dpi = 600, bg = "transparent")
+ggsave("pub_larger_colors.pdf", height = 10, width = 10, dpi = 600, bg = "transparent")
