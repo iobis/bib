@@ -4,6 +4,9 @@ import requests
 import time
 import csv
 
+filename = "lists/Aphia_soortnamen_20181120.csv"
+userQuery = "TS=%s AND AD=Belgi* AND PY=(2016-2019)"
+
 # wsdl
 
 wsdl_auth = "http://search.webofknowledge.com/esti/wokmws/ws/WOKMWSAuthenticate?wsdl"
@@ -19,7 +22,7 @@ db.commit()
 
 # create species list
 
-with open("lists/Lijst 2 WoRMS_marine or brackish and_freshwater.csv", "rb") as csvfile:
+with open(filename, "rb") as csvfile:
 	reader = csv.reader(csvfile)
 	for row in reader:
 		sp = row[0].decode("utf8")
@@ -77,8 +80,7 @@ for species in specieslist:
 
 	search = species.replace("(", "")
 	search = search.replace(")", "")
-	#query.userQuery = "TS=%s AND AD=Belgi* AND PY=(2016-2018)" % search
-	query.userQuery = "TS=%s AND AD=Belgi*" % search
+	query.userQuery = userQuery % search
 
 	try:
 		results = client.service.search(query, retrieve)
