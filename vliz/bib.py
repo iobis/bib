@@ -3,6 +3,7 @@ from suds.client import Client
 import requests
 import time
 import csv
+import sys
 
 filename = "lists/Aphia_soortnamen_20181120.csv"
 userQuery = "TS=%s AND AD=Belgi* AND PY=(2016-2019)"
@@ -27,8 +28,10 @@ with open(filename, "rb") as csvfile:
 	for row in reader:
 		sp = row[0].decode("utf8")
 		print sp
-		db.execute("insert into species values (?, ?)", (sp, False))
-	db.commit()
+		res = db.execute("select count(*) from species where name = ?", (sp,)).fetchone()[0]
+		if res == 0:
+			db.execute("insert into species values (?, ?)", (sp, False))
+			db.commit()
 
 # read species list
 
