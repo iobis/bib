@@ -7,6 +7,7 @@ import sys
 
 filename = "lists/Aphia_soortnamen_20181120.csv"
 userQuery = "TS=%s AND AD=Belgi* AND PY=(2016-2019)"
+populate = False
 
 # wsdl
 
@@ -23,15 +24,16 @@ db.commit()
 
 # create species list
 
-with open(filename, "rb") as csvfile:
-	reader = csv.reader(csvfile)
-	for row in reader:
-		sp = row[0].decode("utf8")
-		print sp
-		res = db.execute("select count(*) from species where name = ?", (sp,)).fetchone()[0]
-		if res == 0:
-			db.execute("insert into species values (?, ?)", (sp, False))
-			db.commit()
+if populate:
+	with open(filename, "rb") as csvfile:
+		reader = csv.reader(csvfile)
+		for row in reader:
+			sp = row[0].decode("utf8")
+			print sp
+			res = db.execute("select count(*) from species where name = ?", (sp,)).fetchone()[0]
+			if res == 0:
+				db.execute("insert into species values (?, ?)", (sp, False))
+				db.commit()
 
 # read species list
 
