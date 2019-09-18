@@ -1,7 +1,7 @@
 require(RSQLite)
 require(dplyr)
 
-con = dbConnect(drv = RSQLite::SQLite(), dbname = "bib.db")
+con = dbConnect(drv = RSQLite::SQLite(), dbname = "publications.db")
 checked = dbGetQuery(con, "select count(*) from species where checked")
 total = dbGetQuery(con, "select count(*) from species")
 pubs = dbGetQuery(con, "select * from publications")

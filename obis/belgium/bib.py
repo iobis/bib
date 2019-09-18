@@ -13,7 +13,7 @@ wsdl_search = "http://search.webofknowledge.com/esti/wokmws/ws/WokSearchLite?wsd
 
 # database
 
-db = sqlite3.connect("bib.db")
+db = sqlite3.connect("publications.db")
 db.execute("create table if not exists auth (key text)")
 db.execute("create table if not exists publications (uid text, title text, year integer)")
 db.commit()
