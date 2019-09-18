@@ -86,85 +86,80 @@ for pub in publications:
         time.sleep(10)
         continue
 
-    urls = re.findall("full_record\.do\?[^\"]*", content)
-    if len(urls) > 0:
-        logger.debug(colored("Found " + str(len(urls)) + " full record URLs", "cyan"))
-    else:
-        logger.debug("Found 0 full record URLs")
+    for link in br.links():
 
-    if 0 < len(urls) <= max_results:
-        full = html.unescape(base_url + urls[0])
-        logger.debug("Getting full record page: " + full)
-        r = requests.get(full, timeout=240)
-        page = r.text
-        logger.debug("Received page")
+        # alternative strategy
+        if "full_record" in link.url:
+            logger.debug("Found search result link: " + link.url)
+            response = br.follow_link(link)
+            page = response.read()
 
-        if log_to_html:
-            with open("log/" + str(brefid) + "_page.html", "w") as f:
-                f.write(content)
-                logger.debug("Response written to file " + str(brefid) + "_page.html")
+            if log_to_html:
+                with open("log/" + str(brefid) + "_page.html", "w") as f:
+                    f.write(content)
+                    logger.debug("Response written to file " + str(brefid) + "_page.html")
 
-        # authors
+            # authors
 
-        authors = re.findall("author_name=(.*?)&amp", page)
-        logger.info("Found " + str(len(authors)) + " authors")
+            authors = re.findall("author_name=(.*?)&amp", page)
+            logger.info("Found " + str(len(authors)) + " authors")
 
-        for author in authors:
-            query = "insert into authors values (%s, '%s')" % (id, author.replace("'", ""))
-            c.execute(query)
-            conn.commit()
+            for author in authors:
+                query = "insert into authors values (%s, '%s')" % (id, author.replace("'", ""))
+                c.execute(query)
+                conn.commit()
 
-        # author addresses
+            # author addresses
 
-        found = False
+            found = False
 
-        addresses = re.findall("addressWOS(.*),(.*?)</a>", page)
-        for a in addresses:
-            address = a[1]
+            addresses = re.findall("addressWOS(.*),(.*?)</a>", page)
+            for a in addresses:
+                address = a[1]
 
-            for country in lib.countries:
-                n = address.lower().count(country.lower())
-                if n > 0:
+                for country in lib.countries:
+                    n = address.lower().count(country.lower())
+                    if n > 0:
 
-                    print("\t" + country)
-                    found = True
+                        logger.debug(country)
+                        found = True
 
-                    # insert record
+                        # insert record
 
-                    query = "insert into wos values (%s, '%s')" % (id, country)
-                    c.execute(query)
-                    conn.commit()
-
-                    break
-
-            if not found:
-                logger.warning("\tNo country found in \"" + address + "\"")
-
-        # reprint address
-
-        addresses = re.findall("fr_address_row2\">(.*?)<", page)
-
-        for address in addresses:
-
-            for country in lib.countries:
-                n = address.lower().count(country.lower())
-                if n > 0:
-
-                    logger.info("\tReprint address: " + country)
-                    found = True
-
-                    # insert record
-
-                    if reprint and not found:
-                        query = "insert into imis.wos values (%s, '%s')" % (id, country)
+                        query = "insert into wos values (%s, '%s')" % (id, country)
                         c.execute(query)
                         conn.commit()
-                        logger.info("\tUsed reprint address")
 
-                    break
+                        break
 
-            if not found:
-                logger.warning("\tNo country found in \"" + address + "\"")
+                if not found:
+                    logger.warning("No country found in \"" + address + "\"")
+
+            # reprint address
+
+            addresses = re.findall("fr_address_row2\">(.*?)<", page)
+
+            for address in addresses:
+
+                for country in lib.countries:
+                    n = address.lower().count(country.lower())
+                    if n > 0:
+
+                        logger.info("Reprint address: " + country)
+                        found = True
+
+                        # insert record
+
+                        if reprint and not found:
+                            query = "insert into imis.wos values (%s, '%s')" % (id, country)
+                            c.execute(query)
+                            conn.commit()
+                            logger.info("Used reprint address")
+
+                        break
+
+                if not found:
+                    logger.warning("No country found in \"" + address + "\"")
 
 c.close()
 conn.close()
