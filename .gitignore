@@ -4,3 +4,4 @@
 **/log
 .Rproj.user
 **/*.Rproj
+__pycache__
